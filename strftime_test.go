@@ -62,6 +62,17 @@ func TestUnknown(t *testing.T) {
 	}
 }
 
+func TestStrict(t *testing.T) {
+	for _, s := range []string{"%", "%1", "%g", "%^", "% "} {
+		t.Run(s, func(t *testing.T) {
+			_, err := StrictFormat(s, testTime)
+			if err == nil {
+				t.Fatalf("managed to expand %q in strict mode", s)
+			}
+		})
+	}
+}
+
 func TestQuick(t *testing.T) {
 	fn := func(text string) bool {
 		s, _ := Format(text, testTime)

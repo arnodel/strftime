@@ -47,6 +47,7 @@ const (
 
 // See http://docs.python.org/3/library/time.html#time.strftime
 var conv = map[string]string{
+	"%%": "%",          // Literal '%'
 	"%a": "Mon",        // Locale’s abbreviated weekday name
 	"%A": "Monday",     // Locale’s full weekday name
 	"%b": "Jan",        // Locale’s abbreviated month name
@@ -67,15 +68,12 @@ var conv = map[string]string{
 }
 
 var (
-	fmtRe = regexp.MustCompile("%[%a-zA-Z]")
+	fmtRe       = regexp.MustCompile("%[%a-zA-Z]")
+	strictFmtRe = regexp.MustCompile("%.?")
 )
 
 // repl replaces % directives with right time, will panic on unknown directive
 func repl(match string, t time.Time) (string, error) {
-	if match == "%%" {
-		return "%", nil
-	}
-
 	format, ok := conv[match]
 	if ok {
 		return t.Format(format), nil
@@ -102,9 +100,7 @@ func repl(match string, t time.Time) (string, error) {
 	return "", fmt.Errorf("unknown directive - %s", match)
 }
 
-// Format return string with % directives expanded.
-// Will return error on unknown directive.
-func Format(format string, t time.Time) (string, error) {
+func doFormat(fmtRe *regexp.Regexp, format string, t time.Time) (string, error) {
 	var err error
 
 	fn := func(match string) string {
@@ -116,4 +112,17 @@ func Format(format string, t time.Time) (string, error) {
 	}
 
 	return fmtRe.ReplaceAllStringFunc(format, fn), err
+}
+
+// Format return string with % directives expanded.
+// Will return error on unknown directive.
+func Format(format string, t time.Time) (string, error) {
+	return doFormat(fmtRe, format, t)
+}
+
+// StrictFormat return string with % directives expanded. Will return error on
+// unknown directive and on '%' not followed by alphabetic characters (e.g.
+// '%1')
+func StrictFormat(format string, t time.Time) (string, error) {
+	return doFormat(strictFmtRe, format, t)
 }
