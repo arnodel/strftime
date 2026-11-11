@@ -13,14 +13,14 @@ Directives:
 	%d - Day of the month as a decimal number [01,31]
 	%H - Hour (24-hour clock) as a decimal number [00,23]
 	%I - Hour (12-hour clock) as a decimal number [01,12]
-	%j - Day of year
+	%j - Day of the year as a decimal number [001,366]
 	%m - Month as a decimal number [01,12]
 	%M - Minute as a decimal number [00,59]
 	%p - Locale’s equivalent of either AM or PM
 	%S - Second as a decimal number [00,61]
-	%U - Week number of the year
+	%U - Week number of the year [00,53], weeks start on Sunday, days before the first Sunday are in week 0
 	%w - Weekday as a decimal number
-	%W - Week number of the year
+	%W - Week number of the year [00,53], weeks start on Monday, days before the first Monday are in week 0
 	%x - Locale’s appropriate date representation
 	%X - Locale’s appropriate time representation
 	%y - Year without century as a decimal number [00,99]
@@ -81,20 +81,15 @@ func repl(match string, t time.Time) (string, error) {
 
 	switch match {
 	case "%j":
-		start := time.Date(t.Year(), time.January, 1, 0, 0, 0, 0, time.UTC)
-		day := int(t.Sub(start).Hours()/24) + 1
-		return fmt.Sprintf("%03d", day), nil
+		return fmt.Sprintf("%03d", t.YearDay()), nil
 	case "%w":
 		return fmt.Sprintf("%d", t.Weekday()), nil
-	case "%W", "%U":
-		start := time.Date(t.Year(), time.January, 1, 23, 0, 0, 0, time.UTC)
-		week := 0
-		for start.Before(t) {
-			week++
-			start = start.Add(Week)
-		}
-
-		return fmt.Sprintf("%02d", week), nil
+	case "%U":
+		// Weeks start on Sunday; days before the first Sunday are in week 0.
+		return fmt.Sprintf("%02d", (t.YearDay()-1+7-int(t.Weekday()))/7), nil
+	case "%W":
+		// Weeks start on Monday; days before the first Monday are in week 0.
+		return fmt.Sprintf("%02d", (t.YearDay()-1+7-(int(t.Weekday())+6)%7)/7), nil
 	}
 
 	return "", fmt.Errorf("unknown directive - %s", match)
